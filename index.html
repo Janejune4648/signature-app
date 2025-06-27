@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Signature Form</title>
+
+  <!-- PWA support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff"/>
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    canvas { border: 1px solid #000; touch-action: none; }
+  </style>
+</head>
+<body>
+  <h2>กรอกข้อมูล</h2>
+  
+  <label>ชื่อ - นามสกุล</label><br>
+  <input type="text" id="name" required><br><br>
+
+  <label>วันเกิด (วัน/เดือน/ปี)</label><br>
+  <input type="date" id="birthdate" required><br><br>
+
+  <label>ลายเซ็น</label><br>
+  <canvas id="signature" width="300" height="150"></canvas><br>
+  <button onclick="clearCanvas()">ล้างลายเซ็น</button><br><br>
+
+  <button onclick="submitData()">Submit</button>
+
+  <script>
+    const canvas = document.getElementById('signature');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    canvas.addEventListener('pointerdown', e => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (drawing) {
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.stroke();
+      }
+    });
+
+    canvas.addEventListener('pointerup', () => drawing = false);
+    canvas.addEventListener('pointerleave', () => drawing = false);
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function submitData() {
+      const name = document.getElementById('name').value;
+      const birthdate = document.getElementById('birthdate').value;
+      const signature = canvas.toDataURL();
+
+      if (!name || !birthdate) {
+        alert("กรุณากรอกข้อมูลให้ครบ");
+        return;
+      }
+
+      fetch('https://script.google.com/macros/s/AKfycbzMYp8Oy1Tz6wTXq63-6AzE3vLq_xjcYNwXwdXiMIfvlWM2Y3SWG9pmyjobvMBBzBrE/exec', {
+        method: 'POST',
+        body: JSON.stringify({ name, birthdate, signature }),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("บันทึกสำเร็จ");
+        document.getElementById('name').value = "";
+        document.getElementById('birthdate').value = "";
+        clearCanvas();
+      })
+      .catch(err => alert("เกิดข้อผิดพลาด"));
+    }
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
